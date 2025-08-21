@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { auth, db } from "@/firebase/firebaseConfig";
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { FlickeringGrid } from "@/components/ui/flickeringgrid";
+import { Button } from "@/components/ui/button";
+import { MapPin, Calendar, Users } from "lucide-react";
+import { gsap } from "gsap";
 
 interface Itinerary {
   id: string;
@@ -17,18 +20,45 @@ interface Itinerary {
 const HomePage = () => {
   const [user, setUser] = useState(auth.currentUser);
   const [recentItineraries, setRecentItineraries] = useState<Itinerary[]>([]);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const buttonsRef = useRef<HTMLDivElement>(null);
+  const pillsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
     fetchRecentItineraries();
-    return () => unsubscribe();
+    
+
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline();
+      
+
+      tl.fromTo(heroRef.current, 
+        { opacity: 0, y: 30 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }
+      )
+      .fromTo(buttonsRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" },
+        "-=0.3"
+      )
+      .fromTo(pillsRef.current?.children || [],
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.4, ease: "power1.out", stagger: 0.1 },
+        "-=0.2"
+      );
+    });
+    
+    return () => {
+      unsubscribe();
+      ctx.revert();
+    };
   }, []);
 
   const fetchRecentItineraries = async () => {
     try {
-      // Fetch last 3 itineraries across all users (or public itineraries)
       const q = query(
-        collection(db, "users", "PUBLIC_UID", "itineraries"), // replace PUBLIC_UID if you have public itineraries
+        collection(db, "users", "PUBLIC_UID", "itineraries"),
         orderBy("createdAt", "desc"),
         limit(3)
       );
@@ -41,94 +71,65 @@ const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white">
-      {/* Flickering Grid Background */}
-      <div className="absolute inset-0 ">
+    <div className="min-h-screen bg-gradient-to-br from-red-950 to-orange-900 overflow-hidden">
+      <div className="fixed inset-0 z-0">
         <FlickeringGrid
-          squareSize={3}
-          gridGap={5}
-          flickerChance={0.6}
-          color="rgb(255, 87, 51)"
+          squareSize={6}
+          gridGap={3}
+          flickerChance={0.05}
+          color="rgb(249, 115, 22)"
           maxOpacity={0.8}
           className="w-full h-full"
         />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-red-900/20 to-black/40" />
       </div>
-      {/* Hero Section */}
-      <section className="text-center py-20 px-4">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          Plan Your Perfect Trip
-        </h1>
-        <p className="text-lg md:text-xl mb-6 text-gray-700">
-          Create, organize, and explore travel itineraries with ease. Adventure, leisure, or work trips — all in one place.
-        </p>
-        <div className="flex justify-center gap-4 flex-wrap">
-          {user ? (
-            <Link href="/dashboard">
-              <button className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-                Go to Dashboard
-              </button>
+
+      <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+          
+          <div ref={heroRef} className="space-y-6">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-orange-400 via-red-400 to-yellow-400 bg-clip-text text-transparent">
+                Travel Smart
+              </span>
+              <br />
+              <span className="text-white">Plan Effortlessly</span>
+            </h1>
+            
+            <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed">
+              Create personalized itineraries, discover new ways, and make every journey easy.
+            </p>
+          </div>
+
+          <div ref={buttonsRef} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link href={user ? "/dashboard" : "/login"}>
+              <Button className="group relative px-8 py-4 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white rounded-xl font-semibold text-lg shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-red-500/25">
+                <span className="relative z-10 flex items-center gap-2">
+                  {user ? "Dashboard" : "Start Planning"}
+                  <Calendar className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-orange-400 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity" />
+              </Button>
             </Link>
-          ) : (
-            <>
-              <Link href="/auth/login">
-                <button className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-                  Login
-                </button>
-              </Link>
-              <Link href="/auth/signup">
-                <button className="px-6 py-3 border border-blue-600 text-blue-600 rounded hover:bg-blue-100 transition">
-                  Sign Up
-                </button>
-              </Link>
-            </>
-          )}
-        </div>
-      </section>
+          </div>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 bg-white">
-        <h2 className="text-3xl font-bold text-center mb-10">Features</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <div className="p-6 bg-blue-50 rounded shadow text-center">
-            <h3 className="text-xl font-semibold mb-2">Plan Itineraries</h3>
-            <p>Create trips with destinations, activities, dates, and photos.</p>
-          </div>
-          <div className="p-6 bg-green-50 rounded shadow text-center">
-            <h3 className="text-xl font-semibold mb-2">Favorites & Filters</h3>
-            <p>Save favorite trips and filter itineraries by type, destination, or activity.</p>
-          </div>
-          <div className="p-6 bg-yellow-50 rounded shadow text-center">
-            <h3 className="text-xl font-semibold mb-2">Explore & Share</h3>
-            <p>Discover itineraries from other travelers and get inspired.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Recent Itineraries */}
-      <section className="py-20 px-4 bg-gray-50">
-        <h2 className="text-3xl font-bold text-center mb-10">Recent Itineraries</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {recentItineraries.length === 0 ? (
-            <p className="text-center col-span-full">No recent itineraries available.</p>
-          ) : (
-            recentItineraries.map((it) => (
-              <div key={it.id} className="bg-white rounded shadow p-4 flex flex-col">
-                {it.photos.length > 0 && (
-                  <img
-                    src={it.photos[0]}
-                    alt={it.title}
-                    className="h-40 w-full object-cover rounded mb-4"
-                    loading="lazy"
-                  />
-                )}
-                <h3 className="text-xl font-semibold mb-1">{it.title}</h3>
-                <p className="text-gray-600">{it.destination}</p>
-                <p className="text-gray-500">{it.tripType}</p>
+          <div ref={pillsRef} className="flex flex-wrap justify-center gap-3 pt-8">
+            {[
+              { icon: MapPin, text: "Easy to use" },
+              { icon: Calendar, text: "Well Planned" },
+              { icon: Users, text: "Helps A Lot" }
+            ].map((feature, i) => (
+              <div 
+                key={i}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-white/60 text-sm hover:bg-white/10 transition-colors cursor-default"
+              >
+                <feature.icon className="w-4 h-4" />
+                {feature.text}
               </div>
-            ))
-          )}
+            ))}
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 };
