@@ -1,103 +1,136 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { auth, db } from "@/firebase/firebaseConfig";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { FlickeringGrid } from "@/components/ui/flickeringgrid";
+
+interface Itinerary {
+  id: string;
+  title: string;
+  destination: string;
+  tripType: string;
+  photos: string[];
+}
+
+const HomePage = () => {
+  const [user, setUser] = useState(auth.currentUser);
+  const [recentItineraries, setRecentItineraries] = useState<Itinerary[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
+    fetchRecentItineraries();
+    return () => unsubscribe();
+  }, []);
+
+  const fetchRecentItineraries = async () => {
+    try {
+      // Fetch last 3 itineraries across all users (or public itineraries)
+      const q = query(
+        collection(db, "users", "PUBLIC_UID", "itineraries"), // replace PUBLIC_UID if you have public itineraries
+        orderBy("createdAt", "desc"),
+        limit(3)
+      );
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Itinerary[];
+      setRecentItineraries(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white">
+      {/* Flickering Grid Background */}
+      <div className="absolute inset-0 ">
+        <FlickeringGrid
+          squareSize={3}
+          gridGap={5}
+          flickerChance={0.6}
+          color="rgb(255, 87, 51)"
+          maxOpacity={0.8}
+          className="w-full h-full"
         />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      </div>
+      {/* Hero Section */}
+      <section className="text-center py-20 px-4">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">
+          Plan Your Perfect Trip
+        </h1>
+        <p className="text-lg md:text-xl mb-6 text-gray-700">
+          Create, organize, and explore travel itineraries with ease. Adventure, leisure, or work trips — all in one place.
+        </p>
+        <div className="flex justify-center gap-4 flex-wrap">
+          {user ? (
+            <Link href="/dashboard">
+              <button className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                Go to Dashboard
+              </button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/auth/login">
+                <button className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                  Login
+                </button>
+              </Link>
+              <Link href="/auth/signup">
+                <button className="px-6 py-3 border border-blue-600 text-blue-600 rounded hover:bg-blue-100 transition">
+                  Sign Up
+                </button>
+              </Link>
+            </>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 px-4 bg-white">
+        <h2 className="text-3xl font-bold text-center mb-10">Features</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="p-6 bg-blue-50 rounded shadow text-center">
+            <h3 className="text-xl font-semibold mb-2">Plan Itineraries</h3>
+            <p>Create trips with destinations, activities, dates, and photos.</p>
+          </div>
+          <div className="p-6 bg-green-50 rounded shadow text-center">
+            <h3 className="text-xl font-semibold mb-2">Favorites & Filters</h3>
+            <p>Save favorite trips and filter itineraries by type, destination, or activity.</p>
+          </div>
+          <div className="p-6 bg-yellow-50 rounded shadow text-center">
+            <h3 className="text-xl font-semibold mb-2">Explore & Share</h3>
+            <p>Discover itineraries from other travelers and get inspired.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Recent Itineraries */}
+      <section className="py-20 px-4 bg-gray-50">
+        <h2 className="text-3xl font-bold text-center mb-10">Recent Itineraries</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {recentItineraries.length === 0 ? (
+            <p className="text-center col-span-full">No recent itineraries available.</p>
+          ) : (
+            recentItineraries.map((it) => (
+              <div key={it.id} className="bg-white rounded shadow p-4 flex flex-col">
+                {it.photos.length > 0 && (
+                  <img
+                    src={it.photos[0]}
+                    alt={it.title}
+                    className="h-40 w-full object-cover rounded mb-4"
+                    loading="lazy"
+                  />
+                )}
+                <h3 className="text-xl font-semibold mb-1">{it.title}</h3>
+                <p className="text-gray-600">{it.destination}</p>
+                <p className="text-gray-500">{it.tripType}</p>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
-}
+};
+
+export default HomePage;

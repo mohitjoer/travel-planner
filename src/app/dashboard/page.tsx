@@ -11,7 +11,7 @@ import {
   deleteDoc,
   updateDoc,
 } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth } from "@/firebase/firebaseConfig";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import {
@@ -63,16 +63,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        fetchItineraries();
-      } else {
-        setItineraries([]);
-        setFilteredItineraries([]);
-      }
-    });
-
-    return () => unsubscribe();
+    fetchItineraries();
   }, []);
 
   // Delete itinerary
@@ -88,6 +79,16 @@ const Dashboard = () => {
     const itineraryRef = doc(db, "users", auth.currentUser.uid, "itineraries", itinerary.id);
     await updateDoc(itineraryRef, { favorite: !itinerary.favorite });
     fetchItineraries();
+  };
+
+  // Sign out handler
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      // The ProtectedRoute component will handle redirecting to login
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   // Search & filter
@@ -125,15 +126,23 @@ const Dashboard = () => {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen p-6 bg-gray-100">
+      <div className="min-h-screen p-6 bg-gray-100 text-black">
         {/* Header */}
         <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
           <h1 className="text-3xl font-bold">Welcome, {auth.currentUser?.displayName}</h1>
-          <Link href="/create-itinerary">
-            <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-              <PlusCircleIcon className="w-5 h-5" /> Create Itinerary
+          <div className="flex gap-2">
+            <Link href="/create-itinerary">
+              <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                <PlusCircleIcon className="w-5 h-5" /> Create Itinerary
+              </button>
+            </Link>
+            <button 
+              onClick={handleSignOut}
+              className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            >
+              Sign Out
             </button>
-          </Link>
+          </div>
         </div>
 
         {/* Search / Filter */}
