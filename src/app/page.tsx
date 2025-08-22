@@ -1,32 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
-import { auth, db } from "@/firebase/firebaseConfig";
-import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { useState, useEffect, useRef } from "react";
+import { auth } from "@/firebase/firebaseConfig";
 import { FlickeringGrid } from "@/components/ui/flickeringgrid";
 import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Users } from "lucide-react";
 import { gsap } from "gsap";
 
-interface Itinerary {
-  id: string;
-  title: string;
-  destination: string;
-  tripType: string;
-  photos: string[];
-}
-
 const HomePage = () => {
   const [user, setUser] = useState(auth.currentUser);
-  const [recentItineraries, setRecentItineraries] = useState<Itinerary[]>([]);
   const heroRef = useRef<HTMLDivElement>(null);
   const buttonsRef = useRef<HTMLDivElement>(null);
   const pillsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => setUser(u));
-    fetchRecentItineraries();
     
 
     const ctx = gsap.context(() => {
@@ -54,21 +43,6 @@ const HomePage = () => {
       ctx.revert();
     };
   }, []);
-
-  const fetchRecentItineraries = async () => {
-    try {
-      const q = query(
-        collection(db, "users", "PUBLIC_UID", "itineraries"),
-        orderBy("createdAt", "desc"),
-        limit(3)
-      );
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Itinerary[];
-      setRecentItineraries(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-950 to-orange-900 overflow-hidden">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 
 interface Activity {
@@ -16,7 +16,7 @@ interface Itinerary {
   activities: Activity[];
   photos: string[];
   favorite?: boolean;
-  createdAt?: any;
+  createdAt?: Date | { seconds: number; nanoseconds: number };
 }
 
 export async function POST(request: NextRequest) {
@@ -25,8 +25,7 @@ export async function POST(request: NextRequest) {
 
     if (!uid) return NextResponse.json({ message: "Missing UID" }, { status: 400 });
 
-    let itinerariesRef = collection(db, "users", uid, "itineraries");
-    let q = query(itinerariesRef);
+    const itinerariesRef = collection(db, "users", uid, "itineraries");
 
     const allDocs = await getDocs(itinerariesRef);
     let results: Itinerary[] = allDocs.docs.map(doc => ({ id: doc.id, ...doc.data() } as Itinerary));

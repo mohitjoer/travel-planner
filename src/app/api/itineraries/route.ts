@@ -51,12 +51,13 @@ export async function POST(request: NextRequest) {
           const buffer = Buffer.from(arrayBuffer);
 
           // Upload to Cloudinary
-          const uploadResult: any = await new Promise((resolve, reject) => {
+          const uploadResult = await new Promise<{ secure_url: string }>((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
               { folder: `itineraries/${uid}` },
               (error, result) => {
                 if (error) reject(error);
-                else resolve(result);
+                else if (result) resolve(result);
+                else reject(new Error('Upload failed'));
               }
             );
             uploadStream.end(buffer);
